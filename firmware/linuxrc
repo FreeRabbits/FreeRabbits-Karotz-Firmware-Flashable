@@ -73,16 +73,8 @@ for i in $(echo $FILES_LIST); do
     /bin/ln -s /karotz$i $i
 done
 
-[ -e /etc/conf/rootfs_version ] && /bin/rm /etc/conf/rootfs_version
-
-rm -rf /etc/conf/rootfs_version
-
-/bin/ln -s /karotz/etc/rootfs_version /etc/conf/rootfs_version 
-
-[ -e /etc/resolv.conf ] && /bin/rm /etc/resolv.conf
-cat << EOF > /etc/resolv.conf
-nameserver 8.8.8.8
-EOF
+[ ! -f "/usr/httpd.conf" ] && echo -e "A:*\nI:index.html\n" > /usr/httpd.conf
+[ ! -f "/usr/karotz/uuid.conf" ] && uuidgen > /usr/karotz/uuid.conf
 
 [ -f "/dev/rtc" ] && /bin/rm /dev/rtc
 /bin/ln -s /dev/rtc0 /dev/rtc
@@ -97,34 +89,25 @@ EOF
 
 export GST_REGISTRY=/usr/karotz/registry
 export GST_REGISTRY_UPDATE=no
-export AUTO_UPDATE=yes
-
-[ -f /etc/conf/enable_syslogd ] && /sbin/syslogd
-
-/sbin/inetd
+export AUTO_UPDATE=no
 
 /bin/cat /karotz/etc/motd
 
-echo "Rootfs version : $(cat /karotz/etc/rootfs_version)"
-if [ -e /etc/conf/sys_version ]; then
-    echo "System version : $(cat /etc/conf/sys_version)"
-else
-    [ ! -e /usr/etc/conf ] && mkdir -p /usr/etc/conf
-    touch /usr/etc/conf/sys_version
-    echo "10.10.10.10" > /usr/etc/conf/sys_version
-    echo "System version : 10.10.10.10"
-fi
+/sbin/syslogd
 
-echo "NAND status : $(dmesg | grep "is bad" | wc -l) bad blocks"
-echo -e "Auto Update : $AUTO_UPDATE\n"
+logger "[START] Rootfs version: $(cat /karotz/etc/rootfs_version)"
+logger "[START] Karotz UUID: $(cat /usr/karotz/uuid.conf)"
+logger "[START] NAND status: $(dmesg | grep "is bad" | wc -l) bad blocks"
 
 # if there is a signed autorun in a usb key, let's run it
 # the directory in which the autorun is located
 GNUPGHOME=/karotz/etc/gpg
 GPG="/bin/gpg -quiet --lock-never --ignore-time-conflict --homedir $GNUPGHOME"
-if [ -x /mnt/usbkey/autorun -a -f /mnt/usbkey/autorun.sig ] ; then
-    echo "Launching autorun if present"
-	$GPG --verify /mnt/usbkey/autorun.sig 2>/dev/null && /mnt/usbkey/autorun
+if [ -x /mnt/usbkey/autorun -a -f /mnt/usbkey/autorun.sig ]; then
+    logger "[START] Launching USB autorun if present"
+    $GPG --verify /mnt/usbkey/autorun.sig 2>/dev/null && /mnt/usbkey/autorun
 fi
 
+logger "[START] Exit linuxrc, Starting /sbin/init"
 exec /sbin/init
+

@@ -7,7 +7,9 @@
 
 ::restart:/sbin/init
 
-#::askfirst:/bin/bash
+::askfirst:/bin/bash
+
+::respawn:/sbin/inetd -f /karotz/etc/inetd.conf
 
 # Stuff to do before rebooting
 ::shutdown:/karotz/scripts/karotz_shutdown.sh

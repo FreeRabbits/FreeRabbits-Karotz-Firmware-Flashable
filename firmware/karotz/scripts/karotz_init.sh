@@ -1,42 +1,17 @@
 #!/bin/bash
 
-. /karotz/scripts/update_functions.sh
-
-# Detects any crashed installation
-
-if [ -e /usr/.install_yaffs_start ] && [ -e /usr/.install_yaffs_stop ]; then
-    # Yaffs successfully installed
-    logger -s "[INIT] clean yaffs found"
-    #rm /usr/.install_yaffs_start
-    #rm /usr/.install_yaffs_stop
-
-elif [ -e /usr/.install_yaffs_start ] && [ ! -e /usr/.install_yaffs_stop ]; then
-    # Yaffs has crashed
-    logger -s "[INIT] yaffs crashed -> restore"
-    restauration_yaffs
-    reboot
-
-elif [ ! -e /usr/.install_yaffs_start ] && [ -e /usr/.install_yaffs_stop ]; then
-    # Something is wrong
-    logger -s "[INIT] yaffs wrong -> restore"
-    restauration_yaffs
-    reboot
+if [ ! -d "/usr/www" ]; then
+    logger -s "[INIT] Creating www root and cgi"
+    mkdir -p /usr/www
+    mkdir -p /usr/www/cgi-bin
+    cp -f /karotz/scripts/www/index.html /usr/www/index.html
+    cp -f /karotz/scripts/www/cgiinfo.sh /usr/www/cgi-bin/info
 fi
 
-if [ -e /usr/yaffs.tar.gz ]; then
-    # Karotz has crashed during downloading
-    rm /usr/yaffs.tar.gz
-fi
-
-FILES=$(ls -l /usr | grep -v lost+found | grep -v etc | wc -l)
-FILES=`expr $FILES - 1`
-
-# Starting Yaffs
-if [ -e /usr/yaffs_start.sh ] && [ $FILES -gt 1 ]; then
-    logger -s "[INIT] yaffs start"
-    /usr/yaffs_start.sh
+if [ -f /usr/startup.sh ]; then
+    logger -s "[INIT] Starting /usr/startup.sh"
+    /usr/startup.sh
 else
-    logger -s "[INIT] no yaffs_start -> restore"
-    restauration_yaffs
-    reboot
+    logger -s "[INIT] No startup file found (/usr/startup.sh)"
 fi
+
